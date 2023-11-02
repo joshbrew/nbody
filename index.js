@@ -200,8 +200,7 @@ function drawSystem() {
         if(planet === largestBody) console.log(planetX,planetY);
         // Scale the planet radius logarithmically for visualization
         let scaled = Math.log10(planet.mass)*0.10;
-        const planetRadius = Math.pow(scaled, scaled)*.4; // Adjusted scaling using cube root
-
+        const planetRadius = Math.pow(scaled, scaled)*.4; 
         ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2);
         ctx.fillStyle = planet.color ? planet.color : 'gray';
         ctx.fill();
