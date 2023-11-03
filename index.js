@@ -26,7 +26,7 @@ const SaturnV = {
     fy: 0, // Force applied in the Y direction
     color: 'red'
 };
-const rocketInitialImpulse = 2e4; // Arbitrary large number for noticeable effect, this is multiplied over timeStep (e.g. 1Hr)
+const rocketInitialImpulse = 3e4; // Arbitrary large number for noticeable effect, this is multiplied over timeStep (e.g. 1Hr)
 let rocketLaunched = false;
 
 /** e.g.
@@ -313,7 +313,12 @@ function updateSystem(
 
             if (distance === 0) continue; // Avoid self-interaction or collision
 
-            const force = (G * planetA.mass) / (Math.pow(distance,(1.8 - (planetA.mass < mainBody.mass ? 2*(mainBodyMassLog-Math.log(Math.log(planetA.mass))) : 0))));
+            const force = (G * planetA.mass) / (
+              Math.pow( //this is just to make it more fun rather than be accurate
+                distance,
+                (1.98 - (planetA.mass < mainBody.mass ? 3*(mainBodyMassLog-Math.log(Math.log(planetA.mass))
+              ) : 0)))
+            );
             // Calculate the acceleration of the rocket due to planet's gravity
             const ax = force * dx / distance; //mass cancelled out already
             const ay = force * dy / distance;
