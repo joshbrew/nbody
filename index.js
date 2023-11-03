@@ -133,9 +133,19 @@ function drawSystem(
             const dy = planet.y - planet.mostInfluentialBody.y;
             exaggeratedX = planet.mostInfluentialBody.x + dx * orbitExaggerationFactor;
             exaggeratedY = planet.mostInfluentialBody.y + dy * orbitExaggerationFactor;
+            planet.exaggeratedX = exaggeratedX;
+            planet.exaggeratedY = exaggeratedY;
         }
 
-        drawBody(ctx, exaggeratedX, exaggeratedY, planet.mass, canvas.width, canvas.height, planet.color);
+        drawBody(
+          ctx, 
+          exaggeratedX, 
+          exaggeratedY, 
+          planet.mass, 
+          canvas.width, 
+          canvas.height, 
+          planet.color
+        );
 
         if(mouseX && mouseY && planet.name === 'Earth') {
             // Draw a computed trajectory from Earth based on mouse direction
@@ -152,8 +162,9 @@ function drawSystem(
             };
 
             // Apply the initial force direction to the rocket for trajectory simulation
-            simulatedRocket.vx += Math.cos(angle) * rocketInitialImpulse * dt * dt / rocket.mass; //rocket thrust endures for a whole timeStep
-            simulatedRocket.vy += Math.sin(angle) * rocketInitialImpulse * dt * dt  / rocket.mass;
+            let vScalar = rocketInitialImpulse * dt * dt / rocket.mass;
+            simulatedRocket.vx += Math.cos(angle) * vScalar; //rocket thrust endures for a whole timeStep
+            simulatedRocket.vy += Math.sin(angle) * vScalar;
 
             const distanceFromCenter = Math.sqrt(simulatedRocket.x ** 2 + simulatedRocket.y ** 2);
             const logDistance = distanceFromCenter > 1 ? Math.pow(
@@ -292,13 +303,14 @@ function updateSystem(
 
         if(rocketLaunched) {
         
-            const dx = rocket.x - planetA.x;
-            const dy = rocket.y - planetA.y;
+          //let's use exaggerated orbits 
+            const dx = rocket.x - (planetA.exaggeratedX ? planetA.exaggeratedX : planetA.x);
+            const dy = rocket.y - (planetA.exaggeratedY ? planetA.exaggeratedY : planetA.y);
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance === 0) continue; // Avoid self-interaction or collision
 
-            const force = (G * planetA.mass) / (Math.pow(distance,1.8));
+            const force = (G * planetA.mass) / (Math.pow(distance,(1.8 - (planetA.mass < largestBody.mass ? 0.2 : 0))));
             // Calculate the acceleration of the rocket due to planet's gravity
             const ax = force * dx / distance; //mass cancelled out already
             const ay = force * dy / distance;
@@ -372,8 +384,9 @@ function applyForceToRocket(event) {
         }
         
         // Apply force in the direction of the mouse click
-        SaturnV.vx += Math.cos(angle) * rocketInitialImpulse * timeStep * timeStep / SaturnV.mass;
-        SaturnV.vy += Math.sin(angle) * rocketInitialImpulse * timeStep * timeStep  / SaturnV.mass;
+        const vScalar = rocketInitialImpulse * timeStep * timeStep / SaturnV.mass;
+        SaturnV.vx += Math.cos(angle) * vScalar;
+        SaturnV.vy += Math.sin(angle) * vScalar;
 
         rocketLaunched = true;
 
