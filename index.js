@@ -244,17 +244,20 @@ function drawSystem(
 function updateSystem(
   planets=SolarSystem, 
   rocket=SaturnV,
-  dt=timeStep
+  dt=timeStep,
+  mainBody=largestBody
 ) {
     // Variables to calculate center of mass
     let totalMass = 0;
     let weightedX = 0;
     let weightedY = 0;
+    let mainBodyMassLog;
   
     if (rocketLaunched) {
         // Reset forces on the rocket
         rocket.fx = 0;
         rocket.fy = 0;
+        mainBodyMassLog = Math.log(Math.log(mainBody.mass));
     }
   
     // Calculate the gravitational force between all pairs of bodies
@@ -277,7 +280,7 @@ function updateSystem(
             // Update max force and most influential body for planet A
             if (
                 force > planetA.maxForce || 
-                (planetB !== largestBody && force > planetA.maxForce*0.25) //prefer nearby bodies (i.e. moons to planets to exaggerate orbits)
+                (planetB !== mainBody && force > planetA.maxForce*0.25) //prefer nearby bodies (i.e. moons to planets to exaggerate orbits)
             ) {
                 planetA.maxForce = force;
                 planetA.mostInfluentialBody = planetB;
@@ -310,7 +313,7 @@ function updateSystem(
 
             if (distance === 0) continue; // Avoid self-interaction or collision
 
-            const force = (G * planetA.mass) / (Math.pow(distance,(1.8 - (planetA.mass < largestBody.mass ? 0.2 : 0))));
+            const force = (G * planetA.mass) / (Math.pow(distance,(1.8 - (planetA.mass < mainBody.mass ? 2*(mainBodyMassLog-Math.log(Math.log(planetA.mass))) : 0))));
             // Calculate the acceleration of the rocket due to planet's gravity
             const ax = force * dx / distance; //mass cancelled out already
             const ay = force * dy / distance;
