@@ -203,7 +203,7 @@ function drawSystem(
               ctx.lineTo(simRocketScreenX, simRocketScreenY);
             }
 
-            ctx.strokeStyle = 'green';
+            ctx.strokeStyle = 'yellow';
             ctx.lineWidth = 1;
             ctx.stroke();
 
