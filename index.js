@@ -1,17 +1,9 @@
 import { innerSolarSystemConfig, outerSolarSystemConfig } from "./src/planetConfig";
 
-document.body.insertAdjacentHTML('afterbegin',`
-    <canvas id="solarSystem" width="800" height="800"></canvas>
-`);
-
-const canvas = document.getElementById('solarSystem');
-const ctx = canvas.getContext('2d');
-
 // Constants
 const G = 6.67430e-11; // Gravitational constant
-const timeStep = 3600; // One hour in seconds
+let timeStep = 3600; // One hour in seconds
 const AU = 1.496e11; // One Astronomical Unit (distance from Earth to Sun) in meters
-
 
 // Add a rocket object. The rocket won't attract planets but will be attracted, so mass can be arbitrary to increase gravity
 const SaturnV = {
@@ -24,8 +16,35 @@ const SaturnV = {
     fy: 0, // Force applied in the Y direction
     color: 'red'
 };
-const rocketInitialImpulse = 3e4; // Arbitrary large number for noticeable effect, this is multiplied over timeStep (e.g. 1Hr)
+let rocketInitialImpulse = 3e4; // Arbitrary large number for noticeable effect, this is multiplied over timeStep (e.g. 1Hr)
 let rocketLaunched = false;
+
+document.body.insertAdjacentHTML('afterbegin',`
+    <div>
+      Rocket simulation with tweaked physics and log-scaling for fun-factor.<br/>
+      Rocket Mass (kg): <input type='number' id='mass' value='${SaturnV.mass}'/><br/>
+      Rocket Initial Force (multiplies over initial time step): <input type='number' id='force' value='${rocketInitialImpulse}'/><br/>
+      Time step (s): <input type='number' id='timeStep' value='${timeStep}'/>
+    </div>
+    <canvas style="width:100%;" id="solarSystem" width="800" height="800"></canvas>
+    
+`);
+
+const canvas = document.getElementById('solarSystem');
+const ctx = canvas.getContext('2d');
+
+document.getElementById('mass').onchange = (ev) => {
+  SaturnV.mass = parseFloat(ev.target.value);
+}
+
+document.getElementById('force').onchange = (ev) => {
+  rocketInitialImpulse = parseFloat(ev.target.value);
+}
+
+document.getElementById('timeStep').onchange = (ev) => {
+  timeStep = parseFloat(ev.target.value);
+}
+
 
 /** e.g.
  * planet: {
@@ -90,11 +109,19 @@ function generateSolarSystem(planetConfigs) {
 
 
 function distanceEasing(distanceFromCenter,sf=scaleFactor) {
-  const logDistance = distanceFromCenter > 1 ? Math.pow(
-    distanceFromCenter*logf*sf, 
-    (0.55 + (farthestPlanetDistance*0.0025)*(1-(distanceFromCenter/farthestPlanetDistanceM)))
-  ) : 0; // Avoid log(0) by adding 1
-  return logDistance
+  let exp = 0.55;
+  if(distanceFromCenter < farthestPlanetDistanceM) {
+    return distanceFromCenter > 1 ? Math.pow(
+      distanceFromCenter*logf*sf, 
+      (exp + (farthestPlanetDistance*0.0025)*(1-(distanceFromCenter/farthestPlanetDistanceM)))
+    ) : 0; 
+  } else {
+    let value = Math.pow(
+      farthestPlanetDistanceM*logf*sf, 
+      exp
+    );
+    return value + ((distanceFromCenter/farthestPlanetDistanceM)-1);
+  }
 }
 
 function drawBody(ctx, bodyX, bodyY, mass, canvasWidth, canvasHeight, color) {
@@ -124,7 +151,7 @@ function drawSystem(
       const maxExpectedDistance = Math.log10(farthestPlanetDistance * AU + 1);
       console.log(maxExpectedDistance);
       scaleFactor = Math.min(canvas.width, canvas.height) / (2 * maxExpectedDistance);
-      logf = 1/((farthestPlanetDistance+farthestPlanetDistanceM)*0.5);
+      logf = 1/(farthestPlanetDistanceM*0.5);
       orbitExaggerationFactor = (farthestPlanetDistance > scaleFactor ? scaleFactor*3.33 : farthestPlanetDistance*10); 
             
     }
@@ -216,7 +243,7 @@ function drawSystem(
     if (rocketLaunched) {
         // Apply the same logarithmic scaling for the rocket
         const distanceFromCenter = Math.sqrt(rocket.x ** 2 + rocket.y ** 2);
-        const logDistance = distanceEasing(distanceFromCenter);
+        const logDistance = distanceEasing(distanceFromCenter); 
         const angle = Math.atan2(rocket.y, rocket.x);
         const rocketX = (canvas.width / 2) + (Math.cos(angle) * logDistance * scaleFactor);
         const rocketY = (canvas.height / 2) + (Math.sin(angle) * logDistance * scaleFactor);
