@@ -1,7 +1,18 @@
 # nBody physics test with scaling
 
-This is just a quick and dirty canvas rendering test for an n-body planetary physics sim and some logarithmic scaling for orbital distances and planet radii, including exaggerating moon orbits based on the dominant body. It's not perfect by any means as the orbits can teleport if a new dominant body is picked up, the timestep is not continuous, and the scaling could be fine tuned.
+With Nodejs installed:
 
+`npm i -g tinybuild` then `npm start`
+
+This is just a quick and dirty canvas rendering test for an n-body planetary physics sim and some logarithmic scaling for orbital distances and planet radii, including exaggerating moon orbits based on the dominant body. 
+
+It's not perfect by any means as the orbits can teleport if a new dominant body is picked up, the timestep is not continuous, and the scaling could be fine tuned.
+
+Move mouse to predict trajectory path
+
+Click to fire. 
+
+The physics are gamified so the behavior is more interestin
 ![cap](./cap.PNG)
 
 
