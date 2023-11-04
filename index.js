@@ -163,8 +163,8 @@ function drawSystem(
 
             // Create a simulated rocket with initial position and velocity based on mouse position
             let simulatedRocket = {
-                x: planet.x + Math.cos(angle) * planet.x * 0.2,
-                y: planet.y + Math.sin(angle) * planet.y * 0.2,
+                x: planet.x + Math.cos(angle) * planet.x * 0.2 * Math.sign(planet.x),
+                y: planet.y + Math.sin(angle) * planet.y * 0.2 * Math.sign(planet.y),
                 vx: planet.vx, // Initial velocity based on mouse position
                 vy: planet.vy, // Divide to scale the velocity
                 mass: rocket.mass
@@ -390,8 +390,8 @@ function applyForceToRocket(event) {
         // Set the initial position and velocity of the rocket to be near Earth
         const earth = SolarSystem.find(planet => planet.name === "Earth");
         if (earth) {
-            SaturnV.x = earth.x + Math.cos(angle) * earth.x * 0.2;
-            SaturnV.y = earth.y + Math.sin(angle) * earth.y * 0.2;
+            SaturnV.x = earth.x + Math.cos(angle) * earth.x * 0.2 * Math.sign(earth.x);
+            SaturnV.y = earth.y + Math.sin(angle) * earth.y * 0.2 * Math.sign(earth.y);
             SaturnV.vx = earth.vx;
             SaturnV.vy = earth.vy;
         }
