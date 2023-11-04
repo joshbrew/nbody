@@ -63,12 +63,12 @@ const SolarSystem = generateSolarSystem(solarSystemConfig);
 const largestBody = SolarSystem.reduce((prev, current) => (prev.mass > current.mass) ? prev : current);
   
 // Find the farthest planet to set the scale factor accordingly
-let scaleFactor, logf;
+let scaleFactor, logf, orbitExaggerationFactor=100;
 const farthestPlanetDistance = Math.max(...solarSystemConfig.map(config => Math.abs(config.distance)));
 const farthestPlanetDistanceM = farthestPlanetDistance*AU;
 
 let mouseX, mouseY;
-const timeSimulation = 30*timeStep; // nSteps
+const timeSimulation = 300*timeStep; // nSteps
 
 canvas.addEventListener('mousemove',(ev)=>{
     const rect = canvas.getBoundingClientRect();
@@ -92,7 +92,7 @@ function generateSolarSystem(planetConfigs) {
 function distanceEasing(distanceFromCenter,sf=scaleFactor) {
   const logDistance = distanceFromCenter > 1 ? Math.pow(
     distanceFromCenter*logf*sf, 
-    (0.55 + (sf*0.003)*(1-(distanceFromCenter/(farthestPlanetDistanceM))))
+    (0.55 + (farthestPlanetDistance*0.0025)*(1-(distanceFromCenter/farthestPlanetDistanceM)))
   ) : 0; // Avoid log(0) by adding 1
   return logDistance
 }
@@ -122,8 +122,11 @@ function drawSystem(
     if (!scaleFactor) {
       // The maximum distance we expect to encounter in the system, which will be scaled down to fit the canvas
       const maxExpectedDistance = Math.log10(farthestPlanetDistance * AU + 1);
+      console.log(maxExpectedDistance);
       scaleFactor = Math.min(canvas.width, canvas.height) / (2 * maxExpectedDistance);
-      logf = 1/((scaleFactor+farthestPlanetDistanceM)*0.5);
+      logf = 1/((farthestPlanetDistance+farthestPlanetDistanceM)*0.5);
+      orbitExaggerationFactor = (farthestPlanetDistance > scaleFactor ? scaleFactor*3.33 : farthestPlanetDistance*10); 
+            
     }
   
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
@@ -135,7 +138,6 @@ function drawSystem(
         let exaggeratedY = planet.y;
     
         if (planet !== largestBody && planet.mostInfluentialBody && planet.mostInfluentialBody !== largestBody) {
-            let orbitExaggerationFactor = 100;
             const dx = planet.x - planet.mostInfluentialBody.x;
             const dy = planet.y - planet.mostInfluentialBody.y;
             exaggeratedX = planet.mostInfluentialBody.x + dx * orbitExaggerationFactor;
@@ -169,7 +171,7 @@ function drawSystem(
             };
 
             // Apply the initial force direction to the rocket for trajectory simulation
-            let vScalar = rocketInitialImpulse * dt * dt / rocket.mass;
+            let vScalar = rocketInitialImpulse * dt * dt / simulatedRocket.mass;
             simulatedRocket.vx += Math.cos(angle) * vScalar; //rocket thrust endures for a whole timeStep
             simulatedRocket.vy += Math.sin(angle) * vScalar;
 
@@ -179,8 +181,8 @@ function drawSystem(
             let simRocketAngle = Math.atan2(simulatedRocket.y, simulatedRocket.x);
 
             // Convert polar coordinates to Cartesian coordinates for the trajectory point
-            let simRocketScreenX = (canvas.width / 2) + Math.cos(simRocketAngle) * logDistance;
-            let simRocketScreenY = (canvas.height / 2) + Math.sin(simRocketAngle) * logDistance;
+            let simRocketScreenX = (canvas.width / 2) + Math.cos(simRocketAngle) * logDistance * scaleFactor;
+            let simRocketScreenY = (canvas.height / 2) + Math.sin(simRocketAngle) * logDistance * scaleFactor;
             // Draw the trajectory
             ctx.beginPath();
             // Start at the rocket's current location on the screen, not at the exaggerated position
@@ -188,20 +190,20 @@ function drawSystem(
 
             let ssClone = structuredClone(planets); //clone the planet object so we can project trajectories forward
             for (let t = 0; t < timeSimulation; t += dt) {
-              updateSystem(ssClone, simulatedRocket, dt*10);
+              updateSystem(ssClone, simulatedRocket, dt);
               const distanceFromCenter = Math.sqrt(simulatedRocket.x ** 2 + simulatedRocket.y ** 2);
               const logDistance = distanceEasing(distanceFromCenter);
         
               let simRocketAngle = Math.atan2(simulatedRocket.y, simulatedRocket.x);
 
               // Convert polar coordinates to Cartesian coordinates for the trajectory point
-              let simRocketScreenX = (canvas.width / 2) + Math.cos(simRocketAngle) * logDistance;
-              let simRocketScreenY = (canvas.height / 2) + Math.sin(simRocketAngle) * logDistance;
+              let simRocketScreenX = (canvas.width / 2) + Math.cos(simRocketAngle) * logDistance * scaleFactor;
+              let simRocketScreenY = (canvas.height / 2) + Math.sin(simRocketAngle) * logDistance * scaleFactor;
               
               ctx.lineTo(simRocketScreenX, simRocketScreenY);
             }
 
-            ctx.strokeStyle = 'blue';
+            ctx.strokeStyle = 'green';
             ctx.lineWidth = 1;
             ctx.stroke();
 
@@ -256,7 +258,7 @@ function updateSystem(
     let weightedY = 0;
     let mainBodyMassLog;
   
-    if (rocketLaunched) {
+    if (rocket) {
         // Reset forces on the rocket
         rocket.fx = 0;
         rocket.fy = 0;
@@ -307,7 +309,7 @@ function updateSystem(
         // Now that we have checked all other bodies, planetA knows its most influential body
         // You can perform additional logic here using planetA.mostInfluentialBody if needed
 
-        if(rocketLaunched) {
+        if(rocket) {
         
           //let's use exaggerated orbits 
             const dx = rocket.x - (planetA.exaggeratedX ? planetA.exaggeratedX : planetA.x);
@@ -350,7 +352,7 @@ function updateSystem(
     const centerY = weightedY / totalMass;
 
 
-    if (rocketLaunched) {
+    if (rocket) {
         // Update the velocity and position of the rocket based on the accumulated force
         rocket.x += rocket.vx * dt;
         rocket.y += rocket.vy * dt;
@@ -365,7 +367,7 @@ function updateSystem(
     
 
 function animate() {
-    updateSystem(); // Update the system based on physics
+    updateSystem(SolarSystem, rocketLaunched ? SaturnV : null, timeStep, largestBody); // Update the system based on physics
     drawSystem(); // Draw the system with scaling applied
     requestAnimationFrame(animate); // Call the next frame
 }
