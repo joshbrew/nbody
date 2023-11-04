@@ -12,8 +12,6 @@ const G = 6.67430e-11; // Gravitational constant
 const timeStep = 3600; // One hour in seconds
 const AU = 1.496e11; // One Astronomical Unit (distance from Earth to Sun) in meters
 
-let logDistanceScalingFactor = 0.0000000000005;
-
 
 // Add a rocket object. The rocket won't attract planets but will be attracted, so mass can be arbitrary to increase gravity
 const SaturnV = {
@@ -65,8 +63,9 @@ const SolarSystem = generateSolarSystem(solarSystemConfig);
 const largestBody = SolarSystem.reduce((prev, current) => (prev.mass > current.mass) ? prev : current);
   
 // Find the farthest planet to set the scale factor accordingly
-let scaleFactor;
-const farthestPlanetDistance = Math.max(...solarSystemConfig.map(config => config.distance));
+let scaleFactor, logf;
+const farthestPlanetDistance = Math.max(...solarSystemConfig.map(config => Math.abs(config.distance)));
+const farthestPlanetDistanceM = farthestPlanetDistance*AU;
 
 let mouseX, mouseY;
 const timeSimulation = 30*timeStep; // nSteps
@@ -89,13 +88,20 @@ function generateSolarSystem(planetConfigs) {
   }));
 }
 
+
+function distanceEasing(distanceFromCenter,sf=scaleFactor) {
+  const logDistance = distanceFromCenter > 1 ? Math.pow(
+    distanceFromCenter*logf*sf, 
+    (0.55 + (sf*0.003)*(1-(distanceFromCenter/(farthestPlanetDistanceM))))
+  ) : 0; // Avoid log(0) by adding 1
+  return logDistance
+}
+
 function drawBody(ctx, bodyX, bodyY, mass, canvasWidth, canvasHeight, color) {
   const angle = Math.atan2(bodyY, bodyX);
   // Apply an exponential/logarithmic transformation to the distances from the center
   const distanceFromCenter = Math.sqrt(bodyX * bodyX + bodyY * bodyY);
-  const logDistance = distanceFromCenter > 1 ? Math.pow(
-    distanceFromCenter*logDistanceScalingFactor*scaleFactor/2, 0.7 //modified log/exponential scaling
-  ) : 0;
+  const logDistance = distanceEasing(distanceFromCenter);
   const screenX = (canvasWidth / 2) + Math.cos(angle) * scaleFactor * logDistance;
   const screenY = (canvasHeight / 2) + Math.sin(angle) * scaleFactor * logDistance;
 
@@ -117,6 +123,7 @@ function drawSystem(
       // The maximum distance we expect to encounter in the system, which will be scaled down to fit the canvas
       const maxExpectedDistance = Math.log10(farthestPlanetDistance * AU + 1);
       scaleFactor = Math.min(canvas.width, canvas.height) / (2 * maxExpectedDistance);
+      logf = 1/((scaleFactor+farthestPlanetDistanceM)*0.5);
     }
   
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
@@ -167,9 +174,7 @@ function drawSystem(
             simulatedRocket.vy += Math.sin(angle) * vScalar;
 
             const distanceFromCenter = Math.sqrt(simulatedRocket.x ** 2 + simulatedRocket.y ** 2);
-            const logDistance = distanceFromCenter > 1 ? Math.pow(
-              distanceFromCenter*logDistanceScalingFactor*scaleFactor/2, 0.7
-            ) : 0; // Avoid log(0) by adding 1
+            const logDistance = distanceEasing(distanceFromCenter);
       
             let simRocketAngle = Math.atan2(simulatedRocket.y, simulatedRocket.x);
 
@@ -183,11 +188,9 @@ function drawSystem(
 
             let ssClone = structuredClone(planets); //clone the planet object so we can project trajectories forward
             for (let t = 0; t < timeSimulation; t += dt) {
-              updateSystem(ssClone, simulatedRocket, dt);
+              updateSystem(ssClone, simulatedRocket, dt*10);
               const distanceFromCenter = Math.sqrt(simulatedRocket.x ** 2 + simulatedRocket.y ** 2);
-              const logDistance = distanceFromCenter > 1 ? Math.pow(
-                distanceFromCenter*logDistanceScalingFactor*scaleFactor/2, 0.7
-              ) : 0; // Avoid log(0) by adding 1
+              const logDistance = distanceEasing(distanceFromCenter);
         
               let simRocketAngle = Math.atan2(simulatedRocket.y, simulatedRocket.x);
 
@@ -211,7 +214,7 @@ function drawSystem(
     if (rocketLaunched) {
         // Apply the same logarithmic scaling for the rocket
         const distanceFromCenter = Math.sqrt(rocket.x ** 2 + rocket.y ** 2);
-        const logDistance = Math.pow(distanceFromCenter * logDistanceScalingFactor * scaleFactor / 2, 0.7);
+        const logDistance = distanceEasing(distanceFromCenter);
         const angle = Math.atan2(rocket.y, rocket.x);
         const rocketX = (canvas.width / 2) + (Math.cos(angle) * logDistance * scaleFactor);
         const rocketY = (canvas.height / 2) + (Math.sin(angle) * logDistance * scaleFactor);

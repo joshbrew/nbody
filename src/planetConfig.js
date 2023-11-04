@@ -107,5 +107,12 @@ export const innerSolarSystemConfig = [
       distance: 30.1,
       velocity: 5.43e3,
       color: 'blue'
+    },
+    {
+      name: "Pluto",
+      mass: 1.30900e22, // Pluto's mass in kilograms
+      distance: 39.48, // Average distance to Pluto in AU (varies due to its elliptical orbit)
+      velocity: 4.74e3, // Pluto's average orbital velocity in m/s
+      color: 'coral' // Arbitrary color choice for Pluto
     }
   ];
