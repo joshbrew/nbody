@@ -1,5 +1,7 @@
 # nBody physics test with scaling
 
+[Live Demo](https://nbody2dtest.netlify.app)
+
 With Nodejs installed:
 
 `npm i -g tinybuild` then `npm start`
